@@ -46,13 +46,14 @@ Ensure you have [Node.js v20.5.1](https://nodejs.org/) or newer installed on you
     npm install -g typescript
     ```
 
-4. Prepare your `data/mnemonic.txt` file with the mnemonic phrases, recipients and amount to transfer (you can use the same mnemonic with several unique recipients):
+4. Prepare your `data/mnemonic.txt` file with the mnemonic phrases, recipients and amount to transfer (you can use the same mnemonic with several unique recipients).<br><br>
+   A memo is required for depositing funds on certain centralized exchanges. However, if you don't wish to specify a memo, ensure that the string ends with `amount_to_transfer`.
 
    ```text
-   word1 word2 ... word12##celestia_recipient1##amount_to_transfer1
+   word1 word2 ... word12##celestia_recipient1##amount_to_transfer1##memo1
    word1 word2 ... word12##celestia_recipient2##amount_to_transfer2
    word13 word14 ... word24##celestia_recipient3##amount_to_transfer3
-   word25 word26 ... word36##celestia_recipient4##amount_to_transfer4
+   word25 word26 ... word36##celestia_recipient4##amount_to_transfer4##memo2
    ```
    
 5. Update the `src/config.js` file to set the RPC endpoint, gas multiplier, and other settings (carefully change the url from testnet to mainnet):

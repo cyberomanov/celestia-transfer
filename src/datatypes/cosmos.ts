@@ -13,4 +13,5 @@ export type WalletItem = {
     address: string
     recipient: string
     amount: number
+    memo: string
 }

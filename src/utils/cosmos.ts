@@ -24,6 +24,7 @@ export async function getWalletItems(strings: string[], rpcEndpoint: string): Pr
         let mnemonic: string = mnemonic_string.split('##')[0]
         let recipient: string = mnemonic_string.split('##')[1]
         let amount: string = mnemonic_string.split('##')[2]
+        let memo: string = mnemonic_string.split('##')[3] ?? '';
 
         let wallet: DirectSecp256k1HdWallet | DirectSecp256k1Wallet = await getWalletFromString(mnemonic)
         const client: SigningStargateClient = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet)
@@ -34,7 +35,8 @@ export async function getWalletItems(strings: string[], rpcEndpoint: string): Pr
             wallet: wallet,
             address: account.address,
             recipient: recipient,
-            amount: parseFloat(amount)
+            amount: parseFloat(amount),
+            memo: memo
         }
     })
 
@@ -106,7 +108,7 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
             float: parseFloat((Math.floor(itemsFromSameSender.reduce((sum, item) =>
                 sum + item.amount, 0) * DEFAULT_DENOMINATION) / DEFAULT_DENOMINATION).toFixed(4))
         }
-        const currentBalance = await getWalletBalance(itemsFromSameSender[0].client, sender)
+        const currentBalance: Balance = await getWalletBalance(itemsFromSameSender[0].client, sender)
 
         const messages = itemsFromSameSender.map(item => ({
             typeUrl: '/cosmos.bank.v1beta1.MsgSend',
@@ -121,9 +123,11 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
         }))
 
         if (totalAmountToSend.int < currentBalance.int) {
-            const estimatedFee: number = await itemsFromSameSender[0].client.simulate(sender, messages, '')
+            const estimatedFee: number = await itemsFromSameSender[0].client.simulate(
+                sender, messages, itemsFromSameSender[0].memo
+            )
 
-            const estimatedFeeAdjustment = Math.floor(estimatedFee * GAS_MULTIPLIER)
+            const estimatedFeeAdjustment: number = Math.floor(estimatedFee * GAS_MULTIPLIER)
             const fee: { amount: Coin[], gas: string } = {
                 amount: coins(estimatedFeeAdjustment, DEFAULT_TOKEN_PREFIX),
                 gas: String(estimatedFeeAdjustment)
@@ -131,7 +135,10 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
 
 
             if (totalAmountToSend.int + estimatedFeeAdjustment < currentBalance.int) {
-                const txHash: string = await itemsFromSameSender[0].client.signAndBroadcastSync(sender, messages, fee, '')
+                const txHash: string = await itemsFromSameSender[0].client.signAndBroadcastSync(
+                    sender, messages, fee, itemsFromSameSender[0].memo
+                )
+
                 console.log(`${getCurrentTime()} ${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}`)
             } else {
                 console.log(`${getCurrentTime()} ${sender}: the minimum balance should be: ${totalAmountToSend.int + estimatedFeeAdjustment} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${currentBalance.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
