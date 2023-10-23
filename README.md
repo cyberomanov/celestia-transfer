@@ -48,7 +48,7 @@ Ensure you have [Node.js v20.5.1](https://nodejs.org/) or newer installed on you
 
 4. Prepare your `data/mnemonic.txt` file with the mnemonic phrases, recipients and amount to transfer (you can use the same mnemonic with several unique recipients):
 
-   ```bash
+   ```text
    word1 word2 ... word12##celestia_recipient1##amount_to_transfer1
    word1 word2 ... word12##celestia_recipient2##amount_to_transfer2
    word13 word14 ... word24##celestia_recipient3##amount_to_transfer3
