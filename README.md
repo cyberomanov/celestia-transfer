@@ -77,6 +77,33 @@ Ensure you have [Node.js v20.5.1](https://nodejs.org/) or newer installed on you
     ```bash
     node build/index.js
     ```
+   Get results:
+   ```text
+   [20:49:49.492] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 10s left.
+   [20:49:50.491] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 9s left.
+   [20:49:51.492] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 8s left.
+   [20:49:52.494] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 7s left.
+   [20:49:53.496] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 6s left.
+   [20:49:54.496] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 5s left.
+   [20:49:55.497] genesis time is in the future. sleeping until then... 10/23/2023 8:50:00 PM | 0h 0m 4s left.
+   
+   /////// BALANCE ///////
+   
+   [20:49:55.893] celestia1l9r5ca9cc82fvv90qtyvlwr2vm2lq4cry6m9kq: 10 $TIA | 0.2 $TIA to celestia14470mugpq9dl0dhc4vzqu8q9mn44ka2n9t5g2m.
+   
+   /////// TRANSFER ///////
+   
+   [20:49:56.524] celestia1l9r5ca9cc82fvv90qtyvlwr2vm2lq4cry6m9kq -> 0.2 $TIA | fee: 0.1081 $TIA | https://celestia.explorers.guru/transaction/A4044EC99E9B312BDEFC32E466C0621FD014027B7D8D84826EBC37CD9443A52C
+   
+   [20:49:56.525] sleep 30 sec.
+   
+   /////// BALANCE ///////
+   
+   [20:50:26.905] celestia1l9r5ca9cc82fvv90qtyvlwr2vm2lq4cry6m9kq: 9.6919 $TIA | 0.2 $TIA to celestia14470mugpq9dl0dhc4vzqu8q9mn44ka2n9t5g2m.
+   [20:50:26.905] celestia14470mugpq9dl0dhc4vzqu8q9mn44ka2n9t5g2m: 9.8516 $TIA.
+   
+   with love by @cyberomanov.
+   ```
 
 ## Contributing
 If you'd like to contribute to this project, please fork the repository and submit a pull request.

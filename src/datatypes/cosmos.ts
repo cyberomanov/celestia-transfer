@@ -1,4 +1,4 @@
-import {DirectSecp256k1HdWallet} from "@cosmjs/proto-signing"
+import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet} from "@cosmjs/proto-signing"
 import {SigningStargateClient} from "@cosmjs/stargate"
 
 
@@ -9,7 +9,7 @@ export type Balance = {
 
 export type WalletItem = {
     client: SigningStargateClient
-    wallet: DirectSecp256k1HdWallet
+    wallet: DirectSecp256k1HdWallet | DirectSecp256k1Wallet
     address: string
     recipient: string
     amount: number

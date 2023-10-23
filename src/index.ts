@@ -11,14 +11,14 @@ async function main() {
 
     await until5SecLeft(GENESIS_TIMESTAMP)
 
-    console.log('/////// BALANCE ///////\n')
+    console.log('\n/////// BALANCE ///////\n')
     await untilPositiveBalance(walletItems)
 
     console.log('\n/////// TRANSFER ///////\n')
     await sendConsolidatedTransactions(walletItems)
 
     console.log()
-    await sleep(10_000)
+    await sleep(30_000)
 
     console.log('\n/////// BALANCE ///////\n')
     await printBalances(walletItems, true, true)

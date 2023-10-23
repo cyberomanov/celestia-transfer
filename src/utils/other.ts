@@ -11,7 +11,7 @@ export function readFile(relativeFilePath: string): string[] {
         const fileContent: string = fs.readFileSync(filePath, 'utf-8')
         return fileContent.split('\n').map(line => line.trim()).filter(line => line !== '')
     } catch (error: any) {
-        console.error('Error reading the file:', error.message)
+        console.error(`${getCurrentTime()} error reading the file: ${error.message}`)
         return []
     }
 }
@@ -35,7 +35,7 @@ export function until5SecLeft(targetTimestamp: number): Promise<void> {
             const genTime: Date = new Date(GENESIS_TIMESTAMP)
 
 
-            console.log(`genesis time is in the future. sleeping until then... ${genTime.toLocaleDateString()} ${genTime.toLocaleTimeString()} | ${formatTimeLeft(timeLeft)} left.`)
+            console.log(`${getCurrentTime()} genesis time is in the future. sleeping until then... ${genTime.toLocaleDateString()} ${genTime.toLocaleTimeString()} | ${formatTimeLeft(timeLeft)} left.`)
 
             if (timeLeft <= 5 * 1000) {
                 clearInterval(intervalId)
@@ -60,7 +60,26 @@ export function until5SecLeft(targetTimestamp: number): Promise<void> {
 }
 
 export function sleep(ms: number, log: boolean = true): Promise<void> {
-    log && console.log(`sleep ${Math.floor(ms / 1000)} sec.`)
+    log && console.log(`${getCurrentTime()} sleep ${Math.floor(ms / 1000)} sec.`)
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+
+export function identifyInput(input: string): "private_key" | "mnemonic_phrase" {
+    const privateKeyRegex: RegExp = /^[0-9a-fA-F]{64}$/
+
+    if (privateKeyRegex.test(input)) {
+        return "private_key"
+    } else {
+        return "mnemonic_phrase"
+    }
+}
+
+export function getCurrentTime(): string {
+    const now: Date = new Date()
+    const hours: string = now.getHours().toString().padStart(2, '0')
+    const minutes: string = now.getMinutes().toString().padStart(2, '0')
+    const seconds: string = now.getSeconds().toString().padStart(2, '0')
+    const milliseconds: string = now.getMilliseconds().toString().padStart(3, '0')
+    return `[${hours}:${minutes}:${seconds}.${milliseconds}]`
+}

@@ -6,10 +6,18 @@ import {
     GAS_MULTIPLIER,
     EXPLORER_TX_PATH
 } from "../config.js"
-import {DirectSecp256k1HdWallet, coins, Coin} from "@cosmjs/proto-signing"
+import {DirectSecp256k1HdWallet, coins, Coin, DirectSecp256k1Wallet} from "@cosmjs/proto-signing"
 import {SigningStargateClient} from "@cosmjs/stargate"
-import {sleep} from "./other.js"
+import {identifyInput, sleep, getCurrentTime} from "./other.js"
 
+
+export async function getWalletFromString(string: string): Promise<DirectSecp256k1HdWallet | DirectSecp256k1Wallet> {
+    if (identifyInput(string) === 'private_key') {
+        return await DirectSecp256k1Wallet.fromKey(new Uint8Array(string.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))), DEFAULT_ADDRESS_PREFIX)
+    } else {
+        return await DirectSecp256k1HdWallet.fromMnemonic(string, {prefix: DEFAULT_ADDRESS_PREFIX})
+    }
+}
 
 export async function getWalletItems(strings: string[], rpcEndpoint: string): Promise<WalletItem[]> {
     const itemsPromises: Promise<WalletItem>[] = strings.map(async (mnemonic_string) => {
@@ -17,9 +25,8 @@ export async function getWalletItems(strings: string[], rpcEndpoint: string): Pr
         let recipient: string = mnemonic_string.split('##')[1]
         let amount: string = mnemonic_string.split('##')[2]
 
-        const wallet: DirectSecp256k1HdWallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {prefix: DEFAULT_ADDRESS_PREFIX})
+        let wallet: DirectSecp256k1HdWallet | DirectSecp256k1Wallet = await getWalletFromString(mnemonic)
         const client: SigningStargateClient = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet)
-
         const [account] = await wallet.getAccounts()
 
         return {
@@ -48,13 +55,13 @@ export async function printBalances(walletItems: WalletItem[], to_send: boolean 
         const donor_balance: Balance = await getWalletBalance(item.client, item.address)
         const recipient_balance: Balance = await getWalletBalance(item.client, item.recipient)
         if (to_send) {
-            console.log(`${item.address}: ${donor_balance.float} $TIA | ${item.amount} $TIA to ${item.recipient}.`)
+            console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA | ${item.amount} $TIA to ${item.recipient}.`)
         } else {
-            console.log(`${item.address}: ${donor_balance.float} $TIA.`)
+            console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA.`)
         }
 
         if (recipient) {
-            console.log(`${item.recipient}: ${recipient_balance.float} $TIA.\n`)
+            console.log(`${getCurrentTime()} ${item.recipient}: ${recipient_balance.float} $TIA.`)
         }
     }
 }
@@ -66,12 +73,12 @@ export async function untilSinglePositiveBalance(item: WalletItem): Promise<void
         donor_balance = await getWalletBalance(item.client, item.address)
 
         if (donor_balance.int <= 0) {
-            console.log(`${item.address}: ${donor_balance.float} $TIA, waiting for any balance.`)
+            console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA, waiting for any balance.`)
             await sleep(1500, false)
         }
     } while (donor_balance.int <= 0)
 
-    console.log(`${item.address}: ${donor_balance.float} $TIA | ${item.amount} $TIA to ${item.recipient}.`)
+    console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA | ${item.amount} $TIA to ${item.recipient}.`)
 }
 
 export async function untilPositiveBalance(walletItems: WalletItem[]) {
@@ -125,12 +132,12 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
 
             if (totalAmountToSend.int + estimatedFeeAdjustment < currentBalance.int) {
                 const txHash: string = await itemsFromSameSender[0].client.signAndBroadcastSync(sender, messages, fee, '')
-                console.log(`${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}`)
+                console.log(`${getCurrentTime()} ${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}`)
             } else {
-                console.log(`${sender}: the minimum balance should be: ${totalAmountToSend.int + estimatedFeeAdjustment} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${currentBalance.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
+                console.log(`${getCurrentTime()} ${sender}: the minimum balance should be: ${totalAmountToSend.int + estimatedFeeAdjustment} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${currentBalance.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
             }
         } else {
-            console.log(`${sender}: the minimum balance should be: ${totalAmountToSend.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${currentBalance.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
+            console.log(`${getCurrentTime()} ${sender}: the minimum balance should be: ${totalAmountToSend.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${currentBalance.int} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
         }
     }
 }
