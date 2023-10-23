@@ -1,8 +1,8 @@
-import {getWalletItems, printBalances, sendConsolidatedTransactions, untilPositiveBalance} from "./utils/cosmos.js";
-import {readFile, sleep, until5SecLeft} from "./utils/other.js";
+import {getWalletItems, printBalances, sendConsolidatedTransactions, untilPositiveBalance} from "./utils/cosmos.js"
+import {readFile, sleep, until5SecLeft} from "./utils/other.js"
 
 import {WalletItem} from "./datatypes/cosmos.js"
-import {GENESIS_TIMESTAMP, RPC_ENDPOINT} from "./config.js";
+import {GENESIS_TIMESTAMP, RPC_ENDPOINT} from "./config.js"
 
 
 async function main() {
