@@ -55,7 +55,7 @@ Ensure you have [Node.js v20.5.1](https://nodejs.org/) or newer installed on you
    word25 word26 ... word36##celestia_recipient4##amount_to_transfer4
    ```
    
-5. Update the `src/config.js` file to set the RPC endpoint, gas multiplier, and other settings:
+5. Update the `src/config.js` file to set the RPC endpoint, gas multiplier, and other settings (carefully change the url from testnet to mainnet):
 
    ```javascript
    export const RPC_ENDPOINT = "https://celestia-testnet-rpc.polkachu.com"
