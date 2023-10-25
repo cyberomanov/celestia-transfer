@@ -6,69 +6,49 @@ import {getWalletBalance} from "./cosmos-common.js";
 
 
 export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
-    const groupedBySender: { [p: string]: WalletItem[] } = groupBySender(walletItems)
+    const groupedBySender: { [p: string]: WalletItem[] } = groupBySender(walletItems);
 
     for (const sender in groupedBySender) {
-        let messages, totalAmountToSend: Balance
+        const itemsFromSameSender: WalletItem[] = groupedBySender[sender];
+        const currentBalance: Balance = await getWalletBalance(itemsFromSameSender[0].client, sender);
 
-        const itemsFromSameSender: WalletItem[] = groupedBySender[sender]
-
-        const currentBalance: Balance = await getWalletBalance(itemsFromSameSender[0].client, sender)
-
-        if (itemsFromSameSender.length == 1) {
-            if (itemsFromSameSender[0].amount == -1) {
-                totalAmountToSend = currentBalance
-            } else {
-                totalAmountToSend = {
-                    int: itemsFromSameSender[0].amount * DEFAULT_DENOMINATION,
-                    float: itemsFromSameSender[0].amount
-                }
-            }
-            messages = createSingleMessage(itemsFromSameSender[0], totalAmountToSend)
-        } else {
-            totalAmountToSend = {
-                int: Math.floor(itemsFromSameSender.reduce((sum, item) =>
-                    sum + item.amount, 0) * DEFAULT_DENOMINATION),
-                float: parseFloat((Math.floor(itemsFromSameSender.reduce((sum, item) =>
-                    sum + item.amount, 0) * DEFAULT_DENOMINATION) / DEFAULT_DENOMINATION).toFixed(4))
-            }
-
-            messages = createMultipleMessages(itemsFromSameSender)
-        }
-
-
-        if (totalAmountToSend.int <= currentBalance.int) {
-            const estimatedFee: number = await itemsFromSameSender[0].client.simulate(
-                sender, messages, itemsFromSameSender[0].memo
-            )
-
-            const estimatedFeeAdjustment: number = Math.floor(estimatedFee * GAS_MULTIPLIER)
-            const fee: { amount: Coin[], gas: string } = {
-                amount: coins(estimatedFeeAdjustment, DEFAULT_TOKEN_PREFIX),
-                gas: String(estimatedFeeAdjustment)
-            }
-
-            if (totalAmountToSend.int == currentBalance.int) {
-                totalAmountToSend = {
-                    int: currentBalance.int - estimatedFeeAdjustment,
-                    float: parseFloat((Math.floor(currentBalance.int - estimatedFeeAdjustment) / DEFAULT_DENOMINATION).toFixed(4))
-                }
-                messages = createSingleMessage(itemsFromSameSender[0], totalAmountToSend)
-            }
-
-            if (totalAmountToSend.int + estimatedFeeAdjustment <= currentBalance.int) {
-                const txHash: string = await itemsFromSameSender[0].client.signAndBroadcastSync(
-                    sender, messages, fee, itemsFromSameSender[0].memo
-                )
-
-                console.log(`${getCurrentTime()} ${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}`)
-            } else {
-                logInsufficientBalance(sender, totalAmountToSend.int, currentBalance.int)
-            }
-        } else {
-            logInsufficientBalance(sender, totalAmountToSend.int, currentBalance.int)
-        }
+        const {messages, totalAmountToSend} = determineMessagesAndTotalAmount(itemsFromSameSender, currentBalance);
+        await handleTransaction(sender, itemsFromSameSender, currentBalance, messages, totalAmountToSend);
     }
+}
+
+function determineMessagesAndTotalAmount(itemsFromSameSender: WalletItem[], currentBalance: Balance) {
+    if (itemsFromSameSender.length === 1) {
+        const totalAmountToSend: Balance = computeSingleAmountToSend(itemsFromSameSender, currentBalance);
+        return {
+            messages: createSingleMessage(itemsFromSameSender[0], totalAmountToSend),
+            totalAmountToSend
+        };
+    } else {
+        const totalAmountToSend: Balance = computeMultipleAmountToSend(itemsFromSameSender);
+        return {
+            messages: createMultipleMessages(itemsFromSameSender),
+            totalAmountToSend
+        };
+    }
+}
+
+function computeSingleAmountToSend(itemsFromSameSender: WalletItem[], currentBalance: Balance): Balance {
+    if (itemsFromSameSender[0].amount === -1) {
+        return currentBalance;
+    }
+    return {
+        int: itemsFromSameSender[0].amount * DEFAULT_DENOMINATION,
+        float: itemsFromSameSender[0].amount
+    };
+}
+
+function computeMultipleAmountToSend(itemsFromSameSender: WalletItem[]): Balance {
+    const intSum: number = Math.floor(itemsFromSameSender.reduce((sum, item) => sum + item.amount, 0) * DEFAULT_DENOMINATION);
+    return {
+        int: intSum,
+        float: parseFloat((intSum / DEFAULT_DENOMINATION).toFixed(4))
+    };
 }
 
 function groupBySender(walletItems: WalletItem[]): { [p: string]: WalletItem[] } {
@@ -112,4 +92,50 @@ function createMultipleMessages(itemsFromSameSender: WalletItem[]) {
             }]
         },
     }))
+}
+
+function calculateFee(estimatedFeeAdjustment: number): { amount: Coin[], gas: string } {
+    return {
+        amount: coins(estimatedFeeAdjustment, DEFAULT_TOKEN_PREFIX),
+        gas: String(estimatedFeeAdjustment)
+    };
+}
+
+function adjustForFullBalance(currentBalance: Balance, estimatedFeeAdjustment: number): Balance {
+    return {
+        int: currentBalance.int - estimatedFeeAdjustment,
+        float: parseFloat((Math.floor(currentBalance.int - estimatedFeeAdjustment) / DEFAULT_DENOMINATION).toFixed(4))
+    };
+}
+
+async function trySendOrLogError(
+    sender: string, itemsFromSameSender: WalletItem[], currentBalance: Balance,
+    messages: any[], fee: any, totalAmountToSend: Balance, estimatedFeeAdjustment: number) {
+    if (totalAmountToSend.int + estimatedFeeAdjustment <= currentBalance.int) {
+        const txHash: string = await itemsFromSameSender[0].client.signAndBroadcastSync(
+            sender, messages, fee, itemsFromSameSender[0].memo
+        );
+
+        console.log(`${getCurrentTime()} ${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}.`)
+
+    } else {
+        logInsufficientBalance(sender, totalAmountToSend.int + estimatedFeeAdjustment, currentBalance.int);
+    }
+}
+
+async function handleTransaction(sender: string, itemsFromSameSender: WalletItem[], currentBalance: Balance, messages: any[], totalAmountToSend: Balance) {
+    if (totalAmountToSend.int <= currentBalance.int) {
+        const estimatedFee: number = await itemsFromSameSender[0].client.simulate(sender, messages, itemsFromSameSender[0].memo);
+        const estimatedFeeAdjustment: number = Math.floor(estimatedFee * GAS_MULTIPLIER);
+        const fee: { amount: Coin[], gas: string } = calculateFee(estimatedFeeAdjustment);
+
+        if (totalAmountToSend.int === currentBalance.int) {
+            totalAmountToSend = adjustForFullBalance(currentBalance, estimatedFeeAdjustment);
+            messages = createSingleMessage(itemsFromSameSender[0], totalAmountToSend);
+        }
+
+        await trySendOrLogError(sender, itemsFromSameSender, currentBalance, messages, fee, totalAmountToSend, estimatedFeeAdjustment);
+    } else {
+        logInsufficientBalance(sender, totalAmountToSend.int, currentBalance.int);
+    }
 }

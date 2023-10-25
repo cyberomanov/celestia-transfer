@@ -4,7 +4,7 @@ import {
     DEFAULT_ADDRESS_PREFIX,
     DEFAULT_TOKEN_PREFIX
 } from "../config.js"
-import {DirectSecp256k1HdWallet, coins, Coin, DirectSecp256k1Wallet} from "@cosmjs/proto-signing"
+import {DirectSecp256k1HdWallet, Coin, DirectSecp256k1Wallet} from "@cosmjs/proto-signing"
 import {SigningStargateClient} from "@cosmjs/stargate"
 import {identifyInput, sleep, getCurrentTime} from "./other.js"
 
@@ -22,7 +22,7 @@ export async function getWalletItems(strings: string[], rpcEndpoint: string): Pr
         let mnemonic: string = mnemonic_string.split('##')[0]
         let recipient: string = mnemonic_string.split('##')[1]
         let amount: string = mnemonic_string.split('##')[2]
-        let memo: string = mnemonic_string.split('##')[3] ?? '';
+        let memo: string = mnemonic_string.split('##')[3] ?? ''
 
         let wallet: DirectSecp256k1HdWallet | DirectSecp256k1Wallet = await getWalletFromString(mnemonic)
         const client: SigningStargateClient = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet)
@@ -55,13 +55,14 @@ export async function printBalances(walletItems: WalletItem[], to_send: boolean 
         const donor_balance: Balance = await getWalletBalance(item.client, item.address)
         const recipient_balance: Balance = await getWalletBalance(item.client, item.recipient)
         if (to_send) {
-            console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA | ${item.amount} $TIA to ${item.recipient}.`)
+            const amount_to_send: number = item.amount === -1 ? donor_balance.float : item.amount
+            console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA | ${amount_to_send} $TIA to ${item.recipient}.`)
         } else {
             console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA.`)
         }
 
         if (recipient) {
-            console.log(`${getCurrentTime()} ${item.recipient}: ${recipient_balance.float} $TIA.`)
+            console.log(`${getCurrentTime()} ${item.recipient}: ${recipient_balance.float} $TIA.\n`)
         }
     }
 }
@@ -78,7 +79,8 @@ export async function untilSinglePositiveBalance(item: WalletItem): Promise<void
         }
     } while (donor_balance.int <= 0)
 
-    console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA | ${item.amount} $TIA to ${item.recipient}.`)
+    const amount_to_send: number = item.amount === -1 ? donor_balance.float : item.amount
+    console.log(`${getCurrentTime()} ${item.address}: ${donor_balance.float} $TIA | ${amount_to_send} $TIA to ${item.recipient}.`)
 }
 
 export async function untilPositiveBalance(walletItems: WalletItem[]) {
