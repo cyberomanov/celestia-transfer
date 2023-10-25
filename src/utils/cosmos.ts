@@ -100,29 +100,58 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
     }
 
     for (const sender in groupedBySender) {
+        let messages
+        let totalAmountToSend: Balance
+
         const itemsFromSameSender: WalletItem[] = groupedBySender[sender]
 
-        const totalAmountToSend: Balance = {
-            int: Math.floor(itemsFromSameSender.reduce((sum, item) =>
-                sum + item.amount, 0) * DEFAULT_DENOMINATION),
-            float: parseFloat((Math.floor(itemsFromSameSender.reduce((sum, item) =>
-                sum + item.amount, 0) * DEFAULT_DENOMINATION) / DEFAULT_DENOMINATION).toFixed(4))
-        }
         const currentBalance: Balance = await getWalletBalance(itemsFromSameSender[0].client, sender)
 
-        const messages = itemsFromSameSender.map(item => ({
-            typeUrl: '/cosmos.bank.v1beta1.MsgSend',
-            value: {
-                fromAddress: sender,
-                toAddress: item.recipient,
-                amount: [{
-                    amount: Math.floor(item.amount * DEFAULT_DENOMINATION).toString(),
-                    denom: DEFAULT_TOKEN_PREFIX
-                }]
-            },
-        }))
+        if (itemsFromSameSender.length == 1) {
+            if (itemsFromSameSender[0].amount == -1) {
+                totalAmountToSend = currentBalance
+            } else {
+                totalAmountToSend = {
+                    int: itemsFromSameSender[0].amount * DEFAULT_DENOMINATION,
+                    float: itemsFromSameSender[0].amount
+                }
+            }
+            messages = [
+                {
+                    typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+                    value: {
+                        fromAddress: sender,
+                        toAddress: itemsFromSameSender[0].recipient,
+                        amount: [{
+                            amount: Math.floor(totalAmountToSend.int).toString(),
+                            denom: DEFAULT_TOKEN_PREFIX
+                        }]
+                    }
+                }
+            ]
+        } else {
+            totalAmountToSend = {
+                int: Math.floor(itemsFromSameSender.reduce((sum, item) =>
+                    sum + item.amount, 0) * DEFAULT_DENOMINATION),
+                float: parseFloat((Math.floor(itemsFromSameSender.reduce((sum, item) =>
+                    sum + item.amount, 0) * DEFAULT_DENOMINATION) / DEFAULT_DENOMINATION).toFixed(4))
+            }
 
-        if (totalAmountToSend.int < currentBalance.int) {
+            messages = itemsFromSameSender.map(item => ({
+                typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+                value: {
+                    fromAddress: sender,
+                    toAddress: item.recipient,
+                    amount: [{
+                        amount: Math.floor(item.amount * DEFAULT_DENOMINATION).toString(),
+                        denom: DEFAULT_TOKEN_PREFIX
+                    }]
+                },
+            }))
+        }
+
+
+        if (totalAmountToSend.int <= currentBalance.int) {
             const estimatedFee: number = await itemsFromSameSender[0].client.simulate(
                 sender, messages, itemsFromSameSender[0].memo
             )
@@ -133,8 +162,25 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
                 gas: String(estimatedFeeAdjustment)
             }
 
+            if (totalAmountToSend.int == currentBalance.int) {
+                totalAmountToSend = {
+                    int: currentBalance.int - estimatedFeeAdjustment,
+                    float: parseFloat((Math.floor(currentBalance.int - estimatedFeeAdjustment) / DEFAULT_DENOMINATION).toFixed(4))
+                }
+                messages = [{
+                    typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+                    value: {
+                        fromAddress: sender,
+                        toAddress: itemsFromSameSender[0].recipient,
+                        amount: [{
+                            amount: Math.floor(totalAmountToSend.int).toString(),
+                            denom: DEFAULT_TOKEN_PREFIX
+                        }]
+                    },
+                }]
+            }
 
-            if (totalAmountToSend.int + estimatedFeeAdjustment < currentBalance.int) {
+            if (totalAmountToSend.int + estimatedFeeAdjustment <= currentBalance.int) {
                 const txHash: string = await itemsFromSameSender[0].client.signAndBroadcastSync(
                     sender, messages, fee, itemsFromSameSender[0].memo
                 )
