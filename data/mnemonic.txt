@@ -1,4 +1,4 @@
 word1 word2 ... word12##celestia_recipient1##amount_to_transfer1##memo1
 word1 word2 ... word12##celestia_recipient2##amount_to_transfer2
-word13 word14 ... word24##celestia_recipient3##amount_to_transfer3
-word25 word26 ... word36##celestia_recipient4##amount_to_transfer4##memo2
+word13 word14 ... word24##celestia_recipient3##-1##memo2
+word25 word26 ... word36##celestia_recipient4##-1
