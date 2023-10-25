@@ -1,4 +1,5 @@
-import {getWalletItems, printBalances, sendConsolidatedTransactions, untilPositiveBalance} from "./utils/cosmos.js"
+import {getWalletItems, printBalances, untilPositiveBalance} from "./utils/cosmos-common.js"
+import {sendConsolidatedTransactions} from "./utils/cosmos-tx.js"
 import {readFile, sleep, until5SecLeft} from "./utils/other.js"
 
 import {WalletItem} from "./datatypes/cosmos.js"
