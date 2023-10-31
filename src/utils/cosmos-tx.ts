@@ -11,9 +11,12 @@ export async function sendConsolidatedTransactions(walletItems: WalletItem[]) {
     for (const sender in groupedBySender) {
         const itemsFromSameSender: WalletItem[] = groupedBySender[sender];
         const currentBalance: Balance = await getWalletBalance(itemsFromSameSender[0].client, sender);
-
-        const {messages, totalAmountToSend} = determineMessagesAndTotalAmount(itemsFromSameSender, currentBalance);
-        await handleTransaction(sender, itemsFromSameSender, currentBalance, messages, totalAmountToSend);
+        if (currentBalance.int > 0) {
+            const {messages, totalAmountToSend} = determineMessagesAndTotalAmount(itemsFromSameSender, currentBalance);
+            await handleTransaction(sender, itemsFromSameSender, currentBalance, messages, totalAmountToSend);
+        } else {
+            console.log(`${getCurrentTime()} ${sender}: balance 0 $TIA.`)
+        }
     }
 }
 
