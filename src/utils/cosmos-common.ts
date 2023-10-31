@@ -25,7 +25,19 @@ export async function getWalletItems(strings: string[], rpcEndpoint: string): Pr
         let memo: string = mnemonic_string.split('##')[3] ?? ''
 
         let wallet: DirectSecp256k1HdWallet | DirectSecp256k1Wallet = await getWalletFromString(mnemonic)
-        const client: SigningStargateClient = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet)
+
+        let client;
+        while (true) {
+            try {
+                client = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet);
+                if (client) {
+                    break;
+                }
+            } catch (error) {
+                console.error(`waiting for the ${rpcEndpoint} to be online...`);
+            }
+        }
+        // const client: SigningStargateClient = await SigningStargateClient.connectWithSigner(rpcEndpoint, wallet)
         const [account] = await wallet.getAccounts()
 
         return {

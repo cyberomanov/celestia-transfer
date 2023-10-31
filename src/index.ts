@@ -12,6 +12,7 @@ async function main() {
 
     await until5SecLeft(GENESIS_TIMESTAMP)
 
+
     console.log('\n/////// BALANCE ///////\n')
     await untilPositiveBalance(walletItems)
 
