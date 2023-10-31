@@ -8,10 +8,9 @@ import {GENESIS_TIMESTAMP, RPC_ENDPOINT} from "./config.js"
 
 async function main() {
     let fileStrings: string[] = readFile("../.././data/mnemonic.txt")
-    let walletItems: WalletItem[] = await getWalletItems(fileStrings, RPC_ENDPOINT)
-
     await until5SecLeft(GENESIS_TIMESTAMP)
 
+    let walletItems: WalletItem[] = await getWalletItems(fileStrings, RPC_ENDPOINT)
 
     console.log('\n/////// BALANCE ///////\n')
     await untilPositiveBalance(walletItems)
